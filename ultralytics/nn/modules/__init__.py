@@ -74,6 +74,7 @@ from .conv import (
     LightConv,
     RepConv,
     SpatialAttention,
+    WTConv2d,
 )
 from .head import (
     OBB,
@@ -190,4 +191,5 @@ __all__ = (
     "YOLOESegment",
     "YOLOESegment26",
     "v10Detect",
+    "WTConv2d",
 )
