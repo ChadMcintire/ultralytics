@@ -78,6 +78,8 @@ from ultralytics.nn.modules import (
     YOLOESegment,
     YOLOESegment26,
     v10Detect,
+    WTConv,
+    WTDetect,
 )
 from ultralytics.utils import (
     DEFAULT_CFG_DICT,
@@ -2114,6 +2116,7 @@ def parse_model(d, ch, verbose=True):
             SCDown,
             C2fCIB,
             A2C2f,
+            WTConv,
         }
     )
     repeat_modules = frozenset(  # modules with 'repeat' arguments
@@ -2196,6 +2199,7 @@ def parse_model(d, ch, verbose=True):
         elif m in frozenset(
             {
                 Detect,
+                WTDetect,
                 WorldDetect,
                 YOLOEDetect,
                 Segment,

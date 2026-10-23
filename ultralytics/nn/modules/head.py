@@ -16,7 +16,7 @@ from ultralytics.utils.tal import dist2bbox, dist2rbox, make_anchors
 from ultralytics.utils.torch_utils import TORCH_1_11, fuse_conv_and_bn, smart_inference_mode
 
 from .block import DFL, SAVPE, BNContrastiveHead, ContrastiveHead, Proto, Proto26, RealNVP, Residual, SwiGLUFFN
-from .conv import Conv, DWConv
+from .conv import Conv, DWConv, WTConv
 from .transformer import MLP, DeformableTransformerDecoder, DeformableTransformerDecoderLayer
 from .utils import bias_init_with_prob
 
@@ -32,6 +32,7 @@ __all__ = (
     "YOLOEDetect",
     "YOLOESegment",
     "v10Detect",
+    "WTDetect",
 )
 
 
@@ -1987,3 +1988,75 @@ class SemanticSegment(nn.Module):
                 return cls.to(torch.uint8 if self.nc <= 256 else torch.int32)
             return y
         return logits
+
+
+class WTDetect(Detect):
+    """YOLO detection head using WTConv."""
+
+    # Use k=3 for the controlled YOLO baseline comparison.
+    # Evaluate k=5 as a separate WTConv kernel-size ablation.
+    # I should also check how things work if I leave cv2 alone, or cv3 alone 
+
+    def __init__(
+        self,
+        nc: int = 80,
+        reg_max: int = 16,
+        end2end: bool = False,
+        ch: list[int] | tuple[int, ...] = (),
+    ):
+        super().__init__(
+            nc=nc,
+            reg_max=reg_max,
+            end2end=end2end,
+            ch=ch,
+        )
+
+        c2 = max(
+            16,
+            ch[0] // 4,
+            self.reg_max * 4,
+        )
+
+        c3 = max(
+            ch[0],
+            min(self.nc, 100),
+        )
+        
+        self.cv2 = nn.ModuleList(
+            nn.Sequential(
+                Conv(x, c2, 3),
+                nn.Sequential(
+                    WTConv(c2, c2, 3),
+                    Conv(c2, c2, 1),
+                ),
+                nn.Conv2d(
+                    c2,
+                    4 * self.reg_max,
+                    1,
+                ),
+            )
+            for x in ch
+        )
+
+        self.cv3 = nn.ModuleList(
+            nn.Sequential(
+                nn.Sequential(
+                    WTConv(x, x, 3),
+                    Conv(x, c3, 1),
+                ),
+                nn.Sequential(
+                    WTConv(c3, c3, 3),
+                    Conv(c3, c3, 1),
+                ),
+                nn.Conv2d(
+                    c3,
+                    self.nc,
+                    1,
+                ),
+            )
+            for x in ch
+        )
+
+        if end2end:
+            self.one2one_cv2 = copy.deepcopy(self.cv2)
+            self.one2one_cv3 = copy.deepcopy(self.cv3)

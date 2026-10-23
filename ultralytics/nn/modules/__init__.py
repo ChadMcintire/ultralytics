@@ -16,6 +16,8 @@ Examples:
     >>> subprocess.run(f"onnxslim {f} {f} && open {f}", shell=True, check=True)  # pip install onnxslim
 """
 
+from .wtconv import WTConv2d
+
 from .block import (
     C1,
     C2,
@@ -74,7 +76,7 @@ from .conv import (
     LightConv,
     RepConv,
     SpatialAttention,
-    WTConv2d,
+    WTConv,
 )
 from .head import (
     OBB,
@@ -94,6 +96,7 @@ from .head import (
     YOLOESegment,
     YOLOESegment26,
     v10Detect,
+    WTDetect,
 )
 from .transformer import (
     AIFI,
@@ -191,5 +194,7 @@ __all__ = (
     "YOLOESegment",
     "YOLOESegment26",
     "v10Detect",
+    "WTConv",
     "WTConv2d",
+    "WTDetect",
 )
